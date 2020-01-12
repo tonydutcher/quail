@@ -23,7 +23,7 @@ except:
 
 def decode_speech(path, keypath=None, save=False, speech_context=None,
                   sample_rate=44100, max_alternatives=1, language_code='en-US',
-                  enable_word_time_offsets=True, return_raw=False):
+                  enable_word_time_offsets=True, chunk_size=60, return_raw=False):
     """
     Decode speech for a file or folder and return results
 
@@ -69,6 +69,10 @@ def decode_speech(path, keypath=None, save=False, speech_context=None,
         Returns timing information s(onsets/offsets) for each word (default is
         True).
 
+    chunk_size : int
+        The length (in seonds) of a segment to perform speech decoding over (default is
+        60).
+
     return_raw : boolean
         Intead of returning the parsed results objects (i.e. the words), you can
         return the raw reponse object.  This has more details about the decoding,
@@ -88,7 +92,7 @@ def decode_speech(path, keypath=None, save=False, speech_context=None,
 
     # SUBFUNCTIONS
     def decode_file(file_path, client, speech_context, sample_rate,
-                    max_alternatives, enable_word_time_offsets):
+                    max_alternatives, enable_word_time_offsets, chunk_size ):
 
         def recognize(chunk, file_path):
             """
@@ -125,12 +129,13 @@ def decode_speech(path, keypath=None, save=False, speech_context=None,
         # read in wav
         audio = AudioSegment.from_wav(file_path)
 
-        # segment into 1 minute chunks
-        if len(audio)>60000:
-            segments = list(range(0,len(audio),60000))
+        # segment into chunks
+        chunk_size_full = chunk_size * 1000.
+        if len(audio)>chunk_size_full:
+            segments = list(range(0,len(audio),chunk_size_full))
             if segments[-1]<len(audio):
                 segments.append(len(audio)-1)
-            print('Audio clip is longer than 1 minute.  Splitting into %d one minute segments...' % (len(segments)-1))
+            print('Splitting audio clip into %d, %d second chunks...' % (len(segments)-1),chunk_size)
             audio_chunks = []
             for i in range(len(segments)-1):
                 audio_chunks.append(audio[segments[i]:segments[i+1]])
